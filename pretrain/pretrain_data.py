@@ -61,7 +61,7 @@ def get_input_fn(config: configure_pretraining.PretrainingConfig, is_training,
                 tf.data.TFRecordDataset,
                 sloppy=is_training,
                 cycle_length=cycle_length))
-        d = d.shuffle(buffer_size=100)
+        # d = d.shuffle(buffer_size=100)
 
         # We must `drop_remainder` on training because the TPU requires fixed
         # size dimensions. For eval, we assume we are evaluating on the CPU or GPU
