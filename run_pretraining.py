@@ -514,6 +514,42 @@ class PretrainingModel(object):
             mlm_output = self._get_masked_lm_output(masked_inputs, generator)
         fake_data = self._get_fake_data(masked_inputs, mlm_output.logits)
 
+        FakedData = collections.namedtuple("FakedData", ["inputs", "is_fake_tokens"])  # , "sampled_tokens"])
+        fake_data = FakedData(
+            Inputs(
+                tf.constant([[101, 2151, 11385, 2052, 2031, 20464, 4235, 15484, 2011, 2796, 4153, 14731, 1999, 4952,
+                              2733, 2144, 1996, 4946, 5419, 1012, 1523, 8045, 2031, 2116, 7367, 3001, 4082, 1999, 1996,
+                              22366, 1010, 2021, 2498, 2001, 3856, 2039, 1010, 1422, 4373, 5902, 19219, 11961, 17357,
+                              16374, 1010, 2708, 1997, 3095, 1997, 2634, 1521, 21904, 1998, 23093, 2015, 1998, 19332,
+                              8237, 3094, 1010, 2409, 26665, 1012, 1523, 2009, 2003, 2825, 2008, 1996, 15778, 7217,
+                              2015, 12767, 7237, 2125, 2004, 2057, 5452, 2006, 2019, 2004, 1011, 3223, 3978, 1012, 2061,
+                              3383, 3905, 4852, 2015, 2020, 4082, 1010, 20229, 2089, 2025, 2031, 1996, 3223, 2846, 2000,
+                              11487, 1037, 3462, 2012, 2019, 21157, 1997, 431, 1010, 2199, 2519, 1012, 1524, 102, 16353,
+                              7069, 4153, 2038, 2019, 2779, 5995, 1997, 2062, 2084, 2260, 1010, 102]], dtype=tf.int32),
+                tf.constant([[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                              1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
+                              1, 1, 1, 1, 1, 1, 1, 1]], dtype=tf.int32),
+                tf.constant([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                              0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1,
+                              1, 1, 1, 1, 1, 1, 1, 1]], dtype=tf.int32),
+                tf.constant([[37, 69, 5, 106, 13, 115, 51, 43, 72, 116, 21, 21, 88, 24, 13, 29, 93, 69, 108]],
+                            dtype=tf.int32),
+                tf.constant([[1524, 2510, 2042, 7998, 1996, 1996, 1055, 4886, 2020, 2796, 2057, 2057, 7217, 7217, 1996,
+                              2181, 2029, 2510, 3486]], dtype=tf.int32),
+                tf.constant([[1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1., 1.]])
+            ),
+            tf.constant([[0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0,
+                          0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0,
+                          1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0,
+                          0, 0, 0, 0]], dtype=tf.int32)
+        )
+        print("FAKE DATA", fake_data)
+
         self.token_embeddings = tf.identity(generator.token_embeddings)
         self.all_embeddings = tf.identity(generator.all_embeddings)
         # self.attention_mask = tf.identity(generator.attention_mask)
@@ -530,7 +566,7 @@ class PretrainingModel(object):
         disc_output = None
         if config.electra_objective:
             discriminator = self._build_transformer(
-                masked_inputs, is_training, reuse=not config.untied_generator, embedding_size=embedding_size
+                fake_data.inputs, is_training, reuse=not config.untied_generator, embedding_size=embedding_size
             )
             disc_output = self._get_discriminator_output(fake_data.inputs, discriminator, fake_data.is_fake_tokens)
             self.total_loss += config.disc_weight * disc_output.loss
