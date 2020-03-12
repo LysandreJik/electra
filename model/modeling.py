@@ -237,13 +237,15 @@ class BertModel(object):
                 # mask of shape [batch_size, seq_length, seq_length] which is used
                 # for the attention scores.
                 attention_mask = create_attention_mask_from_input_mask(token_type_ids, input_mask)
+                attention_mask = None
+                self.attention_mask = attention_mask
 
                 # Run the stacked transformer. Output shapes
                 # sequence_output: [batch_size, seq_length, hidden_size]
                 # pooled_output: [batch_size, hidden_size]
                 # all_encoder_layers: [n_layers, batch_size, seq_length, hidden_size].
                 # attn_maps: [n_layers, batch_size, n_heads, seq_length, seq_length]
-                (self.all_layer_outputs, self.attn_maps, self.all_selves) = transformer_model(
+                (self.all_layer_outputs, self.attn_maps, self.all_selves, self.attention_scores) = transformer_model(
                     input_tensor=self.embedding_output,
                     attention_mask=attention_mask,
                     hidden_size=bert_config.hidden_size,
@@ -770,7 +772,7 @@ def attention_layer(
         # `context_layer` = [B, F, N*H]
         context_layer = tf.reshape(context_layer, [batch_size, from_seq_length, num_attention_heads * size_per_head])
 
-    return context_layer, attention_probs
+    return context_layer, attention_probs, query_layer
 
 
 def transformer_model(
@@ -854,7 +856,7 @@ def transformer_model(
             with tf.variable_scope("attention"):
                 attention_heads = []
                 with tf.variable_scope("self"):
-                    attention_head, probs = attention_layer(
+                    attention_head, probs, attention_scores = attention_layer(
                         from_tensor=prev_output,
                         to_tensor=prev_output,
                         attention_mask=attention_mask,
@@ -909,7 +911,7 @@ def transformer_model(
 
     attn_maps = tf.stack(attn_maps, 0)
     if do_return_all_layers:
-        return tf.stack([reshape_from_matrix(layer, input_shape) for layer in all_layer_outputs], 0), attn_maps, all_selves
+        return tf.stack([reshape_from_matrix(layer, input_shape) for layer in all_layer_outputs], 0), attn_maps, all_selves, attention_scores
     else:
         return reshape_from_matrix(prev_output, input_shape), attn_maps
 

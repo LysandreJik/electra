@@ -508,7 +508,7 @@ class PretrainingModel(object):
                 untied_embeddings=config.untied_generator_embeddings,
                 name="generator",
             )
-            mlm_output = self._get_masked_lm_output(masked_inputs, generator)
+            mlm_output, self.relevant_hidden = self._get_masked_lm_output(masked_inputs, generator)
         else:
             generator = self._build_transformer(masked_inputs, is_training, embedding_size=embedding_size)
             mlm_output = self._get_masked_lm_output(masked_inputs, generator)
@@ -516,26 +516,28 @@ class PretrainingModel(object):
 
         self.token_embeddings = tf.identity(generator.token_embeddings)
         self.all_embeddings = tf.identity(generator.all_embeddings)
+        # self.attention_mask = tf.identity(generator.attention_mask)
 
         self.generator_embedding_output = tf.identity(generator.get_embedding_output())
         self.generator_all_encoder_layers = tf.identity(generator.get_all_encoder_layers())
-        self.all_selves = tf.identity(generator.all_selves)
+        self.sequence_output = tf.identity(generator.get_sequence_output())
+        self.pooled_output = tf.identity(generator.get_pooled_output())
 
         self.mlm_output = mlm_output
         self.total_loss = config.gen_weight * mlm_output.loss
 
-        # # Discriminator
-        # disc_output = None
-        # if config.electra_objective:
-        #     discriminator = self._build_transformer(
-        #         fake_data.inputs, is_training, reuse=not config.untied_generator, embedding_size=embedding_size
-        #     )
-        #     disc_output = self._get_discriminator_output(fake_data.inputs, discriminator, fake_data.is_fake_tokens)
-        #     self.total_loss += config.disc_weight * disc_output.loss
-        #
-        # self.discriminator_embedding_output = tf.identity(discriminator.get_embedding_output())
-        # self.discriminator_all_encoder_layers = tf.identity(discriminator.get_all_encoder_layers())
-        # self.discriminator_output = disc_output
+        # Discriminator
+        disc_output = None
+        if config.electra_objective:
+            discriminator = self._build_transformer(
+                masked_inputs, is_training, reuse=not config.untied_generator, embedding_size=embedding_size
+            )
+            disc_output = self._get_discriminator_output(fake_data.inputs, discriminator, fake_data.is_fake_tokens)
+            self.total_loss += config.disc_weight * disc_output.loss
+
+        self.discriminator_embedding_output = tf.identity(discriminator.get_embedding_output())
+        self.discriminator_all_encoder_layers = tf.identity(discriminator.get_all_encoder_layers())
+        self.discriminator_output = disc_output
         #
         # # Evaluation
         # eval_fn_inputs = {
@@ -620,8 +622,8 @@ class PretrainingModel(object):
                 output_bias = tf.get_variable(
                     "output_bias", shape=[self._bert_config.vocab_size], initializer=tf.zeros_initializer()
                 )
-                logits = tf.matmul(hidden, model.get_embedding_table(), transpose_b=True)
-                logits = tf.nn.bias_add(logits, output_bias)
+                logits_embed = tf.matmul(hidden, model.get_embedding_table(), transpose_b=True)
+                logits = tf.nn.bias_add(logits_embed, output_bias)
 
             oh_labels = tf.one_hot(inputs.masked_lm_ids, depth=self._bert_config.vocab_size, dtype=tf.float32)
 
@@ -635,7 +637,7 @@ class PretrainingModel(object):
             preds = tf.argmax(log_probs, axis=-1, output_type=tf.int32)
 
             MLMOutput = collections.namedtuple("MLMOutput", ["logits", "probs", "loss", "per_example_loss", "preds"])
-            return MLMOutput(logits=logits, probs=probs, per_example_loss=label_log_probs, loss=loss, preds=preds)
+            return MLMOutput(logits=logits, probs=probs, per_example_loss=label_log_probs, loss=loss, preds=preds), logits_embed
 
     def _get_discriminator_output(self, inputs, discriminator, labels):
         """Discriminator binary classifier."""
